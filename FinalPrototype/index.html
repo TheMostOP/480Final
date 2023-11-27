@@ -1,0 +1,228 @@
+<!-- code modified from https://github.com/LiorB-D/TwitchChatGame-->
+
+<html>
+  <head>
+    <script src="tmi.min.js">//TMI.js script</script>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
+      integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA=="
+      crossorigin="anonymous"
+    ></script>
+
+    <script>
+      let screenDim = 600;
+
+      let players = ["test1", "test2", "test3", "test4", "test5"]; // All Players who are still in the game
+      let boxes = { unChosen: players.slice(), A: ["test1",  "test5"], B: ["test2"], C: ["test3"], D: ["test4"] }; // What players are in each box
+      let round = 1;
+      let timeLeft = 3; // 15 seconds for 1st round, 5 for subsequent rounds
+      let mostRecentEliminated = "Type Join To Enter The Game"; // Text that appears on the bottom
+
+      
+
+      function setup() { // Runs when page loads in
+        console.log("Setting Up");
+        createCanvas(screenDim + 300, screenDim + 300); // Create p5.js canvas
+        frameRate(100); //Measured in FPS
+        setupClient(); // Setup TMI to listen to Twitch comments
+      }
+
+      function resetBoxes() { // Runs after each round
+        timeLeft = 5; // Reset timer
+        round += 1; // Increment round
+        boxes = { unChosen: players.slice(), A: ["test1"], B: ["test2"], C: ["test3", "test5"], D: ["test4"] }; // Reset boxes
+      }
+      function clearName(name) { // Eliminate a player from their box
+
+        // Go through each of the boxes and filter out the relevant name
+
+        boxes.unChosen = boxes.unChosen.filter((elem) => elem !== name);
+        boxes.A = boxes.A.filter((elem) => elem !== name);
+        boxes.B = boxes.B.filter((elem) => elem !== name);
+        boxes.C = boxes.C.filter((elem) => elem !== name);
+        boxes.D = boxes.D.filter((elem) => elem !== name);
+      }
+      function setupClient() { // Setup TMI to listen to Twitch Chat
+        const client = new tmi.Client({ // Setup TMI Client with the channel(s) you want to listen to
+          channels: ["INSERT_TWITCH_NAME"],
+        });
+
+        client.connect(); // Connect to the channel
+
+        client.on("message", (channel, tags, message, self) => { // Run each time a comment comes in
+          
+          
+
+          let name = tags["display-name"]; // Commenter's Name
+
+          if (round == 1 && message == "join") { // If its the first round let a player join the game
+            players.push(name);
+            boxes.unChosen.push(name); // Add them to the unChosen category
+          }
+
+          if (players.includes(name)) { // If they are in the game
+            switch (message) { // Move them to the relevant box
+              case "A":
+                clearName(name);
+                boxes.A.push(name);
+                break;
+              case "B":
+                clearName(name);
+                boxes.B.push(name);
+                break;
+              case "C":
+                clearName(name);
+                boxes.C.push(name);
+                break;
+              case "D":
+                clearName(name);
+                boxes.D.push(name);
+                break;
+            }
+          }
+        });
+      }
+
+      function draw() { // Runs 100 times per second (Based on FPS value in setup()) 
+        clear(); // Clear Canvas
+        noFill(); // Set pen to noFill
+        stroke("green"); // Set stroke color
+        strokeWeight(5); // Set Stroke width
+        square(0, 50, screenDim); // Draw border around the relevant canvas
+
+        // Draw two lines across border, making a 2x2 grid
+        line(screenDim / 2, 50 + 0, screenDim / 2, 50 + screenDim);
+        line(0, 50 + screenDim / 2, screenDim, 50 + screenDim / 2);
+
+        noStroke(); // Remove border stroke
+        fill("black"); // Set Fill Color
+        textSize(32); // Set Text Size
+
+        // Label each box
+        text("A", screenDim / 4, 50 + screenDim / 4);
+        text("B", (3 * screenDim) / 4, 50 + screenDim / 4);
+        text("C", screenDim / 4, 50 + (3 * screenDim) / 4);
+        text("D", (3 * screenDim) / 4, 50 + (3 * screenDim) / 4);
+
+        // Draw each player name in the relevant box
+        textSize(20); 
+        boxes.unChosen.forEach((player, ind) => {
+          text(player, screenDim + 10, 70 + ind * 20);
+        });
+        boxes.A.forEach((player, ind) => {
+          text(player, screenDim / 4 - 50, 70 + ind * 20);
+        });
+        boxes.B.forEach((player, ind) => {
+          text(player, (3 * screenDim) / 4 - 50, 70 + ind * 20);
+        });
+        boxes.C.forEach((player, ind) => {
+          text(player, screenDim / 4 - 50, screenDim / 2 + 70 + ind * 20);
+        });
+        boxes.D.forEach((player, ind) => {
+          text(player, (3 * screenDim) / 4 - 50, screenDim / 2 + 70 + ind * 20);
+        });
+
+        //get the percentage of players in each box
+        textSize(20); 
+        let percentA = 0, percentB = 0, percentC = 0, percentD = 0;
+        boxes.A.forEach((player, ind) => {
+          percentA++;
+        });
+        percentA = (percentA/players.length)*100;
+        text(percentA + "%", screenDim / 4 - 50, 345);
+        boxes.B.forEach((player, ind) => {
+            percentB++;
+        });
+        percentB = (percentB/players.length)*100;
+        text(percentB + "%", (3 * screenDim) / 4 - 50, 345);
+        boxes.C.forEach((player, ind) => {
+            percentC++;
+        });
+        percentC = (percentC/players.length)*100;
+        text(percentC + "%", screenDim / 4 - 50, screenDim / 2 + 345);
+        boxes.D.forEach((player, ind) => {
+            percentD++;
+        });
+        percentD = (percentD/players.length)*100;
+        text(percentD + "%", (3 * screenDim) / 4 - 50, screenDim / 2 + 345);
+
+        //find which percent is highest
+        let highestPercent = percentA;
+        let highest = "A";
+        if(percentB > highestPercent) {
+            highestPercent = percentB;
+            highest = "B";
+        }
+        if (percentC > highestPercent) {
+            highestPercent = percentC;
+            highest = "C";
+        }
+        if(percentD > highestPercent) {
+            highestPercent = percentD;
+            highest = "D";
+        }
+
+        textSize(32);
+        // Draw headers that says the round and time left
+        text(
+          "Round: " +
+            round +
+            ", Time to Choose: " +
+            Math.round(timeLeft * 10) / 10 + " Number of Players: " + players.length,
+          screenDim / 6,
+          30
+        );
+        timeLeft -= 0.01; // Decrement the timeLeft variable
+
+
+        text(mostRecentEliminated + ". highest vote: " + highest, screenDim / 6, screenDim + 100); // Show most recently eliminated box
+
+        if (timeLeft <= 0) { // If time runs out
+
+         
+        //   boxes.unChosen.forEach((name) => { // Eliminate anyone who didn't choose a box
+        //     players.splice(players.indexOf(name), 1);
+        //   });
+
+        //   let randInd = Math.floor(Math.random() * 4); // Pick a random box
+        //   // Remove all Players in that box and adjust label
+        //   switch (randInd) {
+        //     case 0:
+        //       boxes.A.forEach((name) => {
+        //         players.splice(players.indexOf(name), 1);
+        //       });
+        //       mostRecentEliminated = "Box A was just eliminated";
+        //       break;
+        //     case 1:
+        //       boxes.B.forEach((name) => {
+        //         players.splice(players.indexOf(name), 1);
+        //       });
+        //       mostRecentEliminated = "Box B was just eliminated";
+        //       break;
+        //     case 2:
+        //       boxes.C.forEach((name) => {
+        //         players.splice(players.indexOf(name), 1);
+        //       });
+        //       mostRecentEliminated = "Box C was just eliminated";
+        //       break;
+        //     case 3:
+        //       boxes.D.forEach((name) => {
+        //         players.splice(players.indexOf(name), 1);
+        //       });
+        //       mostRecentEliminated = "Box D was just eliminated";
+        //       break;
+        //   }
+          resetBoxes();
+
+          if (players.length == 0) { // If everyone is eliminated
+            // Reset rounds, timer, and label
+            timeLeft = 3;
+            round = 1;
+            mostRecentEliminated = "Type Join To Enter The Game. highest vote: " + highestPercent;
+          }
+        }
+      }
+    </script>
+  </head>
+</html>
